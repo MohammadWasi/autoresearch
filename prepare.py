@@ -185,11 +185,17 @@ def train_tokenizer():
     print("Tokenizer: building token_bytes lookup...")
     special_set = set(SPECIAL_TOKENS)
     token_bytes_list = []
+    # Create reverse lookup: rank -> raw bytes for accurate byte counting
+    rank_to_bytes = {rank: raw for raw, rank in mergeable_ranks.items()}
+    
     for token_id in range(enc.n_vocab):
-        token_str = enc.decode([token_id])
-        if token_str in special_set:
+        if token_id in special_tokens.values():
             token_bytes_list.append(0)
+        elif token_id in rank_to_bytes:
+            token_bytes_list.append(len(rank_to_bytes[token_id]))
         else:
+            # This should not happen, but fallback for safety
+            token_str = enc.decode([token_id])
             token_bytes_list.append(len(token_str.encode("utf-8")))
     token_bytes_tensor = torch.tensor(token_bytes_list, dtype=torch.int32)
     torch.save(token_bytes_tensor, token_bytes_path)
